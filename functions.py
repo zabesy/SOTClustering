@@ -1,50 +1,22 @@
 import numpy as np
-import pandas as pd
-import matplotlib.image as mpimg
-import matplotlib.pyplot as plt
-import scipy.stats
-import webencodings
-from PIL import Image
-import time
-import math
-from matplotlib.offsetbox import AnnotationBbox, OffsetImage
-import ipywidgets as widgets
-import plotly.graph_objects as go
-from ipywidgets import Layout
-from sklearn.metrics.cluster import v_measure_score
-import unidecode
 import re
-from sklearn.feature_extraction.text import TfidfVectorizer, CountVectorizer
-from sklearn.decomposition import TruncatedSVD
-
-
-from statistics import stdev
-from sklearn.decomposition import TruncatedSVD
-
-import umap.umap_ as umap
-from wordcloud import STOPWORDS, WordCloud, ImageColorGenerator
-import seaborn as sns
-from sklearn.manifold import TSNE
-from sklearn.decomposition import PCA
-from gensim.models import Word2Vec
-from gensim.models import KeyedVectors
-from gensim.test.utils import get_tmpfile, datapath
 
 import matplotlib.pyplot as plt
-from nltk.cluster import KMeansClusterer
 import nltk
+import numpy as np
+import pandas as pd
+import time
+import umap.umap_ as umap
+import unidecode
+from gensim.models import Word2Vec
 from nltk.corpus import stopwords
-from nltk.corpus import words
-import sklearn
 from sklearn import cluster
-from sklearn import metrics
-import gensim.downloader as api
-from gensim.scripts.glove2word2vec import glove2word2vec
-
-from scipy.stats import mode
-from sklearn.metrics import accuracy_score
-import tempfile
-from os.path import exists
+from sklearn.decomposition import PCA
+from sklearn.manifold import TSNE
+from sklearn.metrics.cluster import v_measure_score
+from wordcloud import STOPWORDS, WordCloud, ImageColorGenerator
+from statistics import stdev
+import seaborn as sns
 
 # Ignore the "FutureWarning" on TSNE.
 import warnings
@@ -57,50 +29,24 @@ warnings.filterwarnings(
 )
 
 
-def load_and_or_save_w2v_model(file_name="glove.840B.300d.txt.word2vec", w2v_type="glove", input_file="glove.840B.300d.txt"):
-    assert w2v_type in ["glove", "googles"], "w2v type parameter must be either 'glove' or 'googles'."
-    if w2v_type == "glove":
-        if exists(file_name):
-            return KeyedVectors.load_word2vec_format(file_name, binary=False)
-        elif exists(input_file):
-            print(f"Generating {file_name}")
-            _ = glove2word2vec(input_file, file_name)
-            return KeyedVectors.load_word2vec_format(file_name, binary=False)
-        else:
-            raise AttributeError(f"Neither {file_name} nor {input_file} exists.")
-    else:
-        # Loads and saves model depending on if it already exist.
-        if not exists(file_name):
-            loaded_w2v = api.load('word2vec-google-news-300')
-            # Saves it in current directory
-            loaded_w2v.save(file_name)
-        return KeyedVectors.load(file_name)
-
-
-def collect_sentences_from_tokenized(sentences, tokenized_sentences):
-    for i, sentence in enumerate(tokenized_sentences):
-        sentences.append(sentence)
-    return sentences
-
-
-def try_w2v_model(w2v):
-    for index, word in enumerate(w2v.index_to_key):
-        if index == 10:
-            break
-        print("word #{}/{} is {}".format(index, len(w2v.index_to_key), word))
-
-    pairs = [
-        ('car', 'minivan'),  # a minivan is a kind of car
-        ('car', 'bicycle'),  # still a wheeled vehicle
-        ('car', 'airplane'),  # ok, no wheels, but still a vehicle
-        ('car', 'cereal'),  # ... and so on
-        ('car', 'communism'),
-    ]
-    for w1, w2 in pairs:
-        print('%r\t%r\t%.2f' % (w1, w2, w2v.similarity(w1, w2)))
-
-    print(w2v.most_similar(positive=['car', 'minivan'], topn=5))
-    print(w2v.doesnt_match(['fire', 'water', 'land', 'sea', 'air', 'car']))
+# def load_and_or_save_w2v_model(file_name="glove.trained.txt", w2v_type="glove", input_file="glove.840B.300d.txt"):
+#     assert w2v_type in ["glove", "googles"], "w2v type parameter must be either 'glove' or 'googles'."
+#     if w2v_type == "glove":
+#         if exists(file_name):
+#             return KeyedVectors.load_word2vec_format(file_name, binary=False)
+#         elif exists(input_file):
+#             print(f"Generating {file_name}")
+#             _ = glove2word2vec(input_file, file_name)
+#             return KeyedVectors.load_word2vec_format(file_name, binary=False)
+#         else:
+#             raise AttributeError(f"Neither {file_name} nor {input_file} exists.")
+#     else:
+#         # Loads and saves model depending on if it already exist.
+#         if not exists(file_name):
+#             loaded_w2v = api.load('word2vec-google-news-300')
+#             # Saves it in current directory
+#             loaded_w2v.save(file_name)
+#         return KeyedVectors.load(file_name)
 
 
 def sentence_vectorizer(sentence, model):
@@ -115,7 +61,7 @@ def sentence_vectorizer(sentence, model):
             num_words += 1
         except:
             pass
-    #Check if list if empty. Basically none of the words in the sentence are found in the model.
+    # Check if list if empty. Basically none of the words in the sentence are found in the model.
     if num_words < 1:
         return None
     return np.asarray(words) / num_words
@@ -153,7 +99,7 @@ def check_whitespace_misspells(text, english_words):
     whole_text = []
     for sentence in text.split("."):
         # sentence = "j ust hell o"
-        #Should result in "just hello"
+        # Should result in "just hello"
         changed = True
         temp_words_1 = sentence.split()
         temp_words_2 = []
@@ -162,8 +108,8 @@ def check_whitespace_misspells(text, english_words):
             i = 0
             while i < len(temp_words_1):
                 if i <= len(temp_words_1) - 2:
-                    if (temp_words_1[i] + temp_words_1[i+1]) in english_words:
-                        temp_words_2.append(temp_words_1[i] + temp_words_1[i+1])
+                    if (temp_words_1[i] + temp_words_1[i + 1]) in english_words:
+                        temp_words_2.append(temp_words_1[i] + temp_words_1[i + 1])
                         i += 1
                         changed = True
                     else:
@@ -178,29 +124,29 @@ def check_whitespace_misspells(text, english_words):
     return ".".join(whole_text)
 
 
-def find_unusual_words(text, english_words):
-    #Using googles w2v model
-    model_vocab = load_and_or_save_w2v_model("w2v-gensim-model").index_to_key
-    model_vocab = load_and_or_save_w2v_model("").index_to_key
-    words_orig_text_list = [word for word in (" ".join(text.split("."))).split()]
-    words_orig_text_set = set(words_orig_text_list)
-    unusual_words = words_orig_text_set - english_words
-    unusual_words = sorted(unusual_words)
-    unusual_words_not_in_model = set(unusual_words).difference(model_vocab)
-
-    #Write to file the first <int> (or more) most used wrongly spelled words with count.
-    num_word_count = dict.fromkeys(unusual_words_not_in_model, 0)
-    for index in words_orig_text_list:
-        if index not in num_word_count:
-            continue
-        num_word_count[index] += 1
-    sorted_dict = sorted(num_word_count.items(), key=lambda x: x[1], reverse=True)
-    write_words_to_file(sorted_dict[:20])
-
-    # print("The unusual words that doesn't exist in the model = {}".format(set(unusual_words).difference(model_vocab)))
+# def find_unusual_words(text, english_words):
+#     #Using googles w2v model
+#     model_vocab = load_and_or_save_w2v_model("w2v-gensim-model").index_to_key
+#     model_vocab = load_and_or_save_w2v_model("").index_to_key
+#     words_orig_text_list = [word for word in (" ".join(text.split("."))).split()]
+#     words_orig_text_set = set(words_orig_text_list)
+#     unusual_words = words_orig_text_set - english_words
+#     unusual_words = sorted(unusual_words)
+#     unusual_words_not_in_model = set(unusual_words).difference(model_vocab)
+#
+#     #Write to file the first <int> (or more) most used wrongly spelled words with count.
+#     num_word_count = dict.fromkeys(unusual_words_not_in_model, 0)
+#     for index in words_orig_text_list:
+#         if index not in num_word_count:
+#             continue
+#         num_word_count[index] += 1
+#     sorted_dict = sorted(num_word_count.items(), key=lambda x: x[1], reverse=True)
+#     write_words_to_file(sorted_dict[:20])
+#
+#     # print("The unusual words that doesn't exist in the model = {}".format(set(unusual_words).difference(model_vocab)))
 
 def custom_convert_wrongly_spelled_words(text):
-    #US SPELLING
+    # US SPELLING
     text = re.sub(r'\shonour', ' honor ', text)
     text = re.sub(r'\sfavours', 'favors ', text)
     text = re.sub(r'\shonourable', ' honorable ', text)
@@ -226,9 +172,9 @@ def custom_convert_wrongly_spelled_words(text):
     return text
 
 
-
 def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     text = re.sub(r'This\s*page\s*intentionally\s*left\s*blank', ' ', text)
+    tex = re.sub(r"Translator’s\s*Preface", ' ', text)
     # Remove numbers conjoined with a dot or comma.
     text = re.sub(r'\d\,\d', ' ', text)
     text = re.sub(r'\d\.\d', ' ', text)
@@ -239,10 +185,12 @@ def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     # Remove atmostrophes.
     text = unidecode.unidecode(text)
     # Remove roman numericals, usually followed by a dot. Need to be done several times because some roman numericals can be xvii.xii
-    #And so only the resulting sub will be .xii, but if ran several times, it will result in an empty string.
+    # And so only the resulting sub will be .xii, but if ran several times, it will result in an empty string.
     int_changed = 1
     while int_changed > 0:
-        text, int_changed = re.subn(r'\s((i*v*x*\.)|(i*x*v*\.)|(x*v*i*\.)|(x*i*v*\.)|(v*i*\.)|(l*x*v*i*\.)|(x*l*i*\.)|(f*x*v*i*\.)|(x*i*f*\.))', ' ', text)
+        text, int_changed = re.subn(
+            r'\s((i*v*x*\.)|(i*x*v*\.)|(x*v*i*\.)|(x*i*v*\.)|(v*i*\.)|(l*x*v*i*\.)|(x*l*i*\.)|(f*x*v*i*\.)|(x*i*f*\.))',
+            ' ', text)
 
     # Convert ?! to dots.
     text = re.sub(r'[\x21\x3f]', '.', text)
@@ -257,21 +205,30 @@ def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     # Convert custom wrongly spelled words.
     text = custom_convert_wrongly_spelled_words(text)
 
+    # Remove words that are 1 char long.
+    temp_texts = []
+    for sentence in text.split("."):
+        sen = [word for word in sentence.split() if len(word) > 1]
+        temp_texts.append(" ".join(sen))
+    text = ".".join(temp_texts)
+
     return text
 
 
 def customized_cleaning(text, stop_words, english_words):
-    #Check for unusual words for each text
+    # Check for unusual words for each text
     text = remove_unnecessary_phrases_chars(text, stop_words, english_words)
-    #Fix if misspells with whitespace occurs.
+    # Fix if misspells with whitespace occurs.
     text = check_whitespace_misspells(text, english_words)
 
     return text
 
+
 def write_words_to_file(words):
-    with open('words_not_in_w2v.txt','a') as f:
+    with open('words_not_in_w2v.txt', 'a') as f:
         for word in words:
             f.write("{}\n".format(word))
+
 
 def text_cleaning(dictionary_list_of_strings):
     stop_words = stopwords.words('english') + custom_stop_words()
@@ -279,18 +236,19 @@ def text_cleaning(dictionary_list_of_strings):
     for school, list_books in dictionary_list_of_strings.items():
         for index, text in enumerate(list_books):
             # print("Number of words before cleaning in text = {}".format(len(text.split())))
-            #Unravel decontractions.
+            # Unravel decontractions.
             text = english_decontractions(text)
-            #Customized text cleaning.
+            # Customized text cleaning.
             text = customized_cleaning(text, stop_words, english_words)
-            #Remove extra whitespace
+            # Remove extra whitespace
             text = " ".join(text.split())
-            #Reassign the text to the dict
+            # Reassign the text to the dict
             dictionary_list_of_strings[school][index] = text
             # print("Number of words after cleaning in text = {}".format(len(text.split())))
             # print("First 500 words: {}".format(text.split()[:500]))
 
     return dictionary_list_of_strings
+
 
 def custom_stop_words():
     return ["another",
@@ -361,6 +319,147 @@ def custom_stop_words():
             "xi",
             "i.e.",
             "i.e"]
+
+
+def scatter_plot(labels, values, type='tsne', centroids=None, n_components=2, n_jobs=-1):
+    if type == 'tsne':
+        model = TSNE(n_components=n_components, n_jobs=n_jobs)
+    elif type == 'umap':
+        model = umap.UMAP(n_components=2, n_jobs=n_jobs)
+    else:
+        model = PCA(n_components=2)
+
+    start = time.time()
+
+    np.set_printoptions(suppress=True)
+
+    unique_labels_list = list(set(labels))
+    Y = model.fit_transform(values)
+
+    tsne_time = time.time() - start
+    print(f"TIME: {tsne_time}")
+
+    scatter = plt.scatter(Y[:, 0], Y[:, 1], c=labels, s=5, cmap='tab20')
+    plt.legend(handles=scatter.legend_elements()[0], labels=unique_labels_list, prop={"size": 5})
+
+    # If we want to have centroids join aswell.
+    if centroids != None:
+        CENTER = model.fit_transform(centroids)
+        plt.scatter(CENTER[:, 0], CENTER[:, 1], c='black', s=10)
+        for j in range(len(centroids)):
+            plt.annotate(unique_labels_list[j], xy=(CENTER[j][0], CENTER[j][1]), xytext=(0, 0),
+                         textcoords='offset points')
+
+    plt.show()
+
+
+def cluster_n_assigned(DF, name, labels, schools):
+    amount_SOT_got_clustered_dict = dict()
+    for i, school in enumerate(DF["school"]):
+        if amount_SOT_got_clustered_dict.get(school) is None:
+            amount_SOT_got_clustered_dict[school] = dict.fromkeys([i for i in range(len(schools))], 0)
+        amount_SOT_got_clustered_dict[school][labels[i]] += 1
+
+    # print(amount_SOT_got_clustered_dict)
+
+    cluster_n_assigned_to_SOT = pd.DataFrame(amount_SOT_got_clustered_dict)
+    cluster_n_assigned_to_SOT.plot(kind="bar", stacked=True)
+    plt.xlabel("Cluster")
+    plt.ylabel("Count")
+    plt.title(f"{name.upper()} total cluster assignment of School of Thought")
+    plt.legend(prop={"size": 6})
+    plt.show()
+
+    j = 0
+    for school, list_tuples in amount_SOT_got_clustered_dict.items():
+        plt.subplot(1, 2, (j % 2) + 1)
+        plt.bar(range(len(list_tuples)), [value[1] for value in list_tuples.items()], align='center')
+        plt.xticks(range(len(list_tuples)), [value[0] for value in list_tuples.items()])
+        plt.xlabel("Cluster")
+        plt.ylabel("Count")
+        plt.title(f"{school.capitalize()}")
+        plt.tight_layout()
+        if (j + 1) % 2 == 0:
+            plt.show()
+        j += 1
+
+
+def vectorize_sentences(w2v, DF):
+    indexes_to_remove_from_df = set()
+    sentences_vectorized = []
+    for index, sentence in enumerate(DF["tokenized_sentence"]):
+        temp_variable = sentence_vectorizer(sentence, w2v)
+        # Check if return variable is empty
+        if temp_variable is None:
+            indexes_to_remove_from_df.add(index)
+            continue
+        sentences_vectorized.append(temp_variable)
+
+    DF.drop(DF.index[list(indexes_to_remove_from_df)], inplace=True)
+    DF.reset_index(drop=True, inplace=True)
+    return DF, sentences_vectorized
+
+
+def best_v_measure_w2v(FULL_DF, train=False, train_ratio=0.2, iterations=5, model=1, window=5, epochs=10, vector_size=100):
+    v_measure_list = []
+    for i in range(iterations):
+
+        if train:
+            indexes = [i for i in list(FULL_DF.sample(frac=train_ratio).index)]
+            DF_TRAIN = FULL_DF.iloc[indexes]
+            DF_TRAIN.reset_index(drop=True, inplace=True)
+            DF_TEST = FULL_DF.iloc[~FULL_DF.index.isin(indexes)]
+            DF_TEST.reset_index(drop=True, inplace=True)
+        else:
+            DF_TEST = FULL_DF
+            DF_TRAIN = FULL_DF
+
+        w2v = Word2Vec(
+            DF_TRAIN["tokenized_sentence"].tolist(),
+            vector_size=vector_size,
+            sg=model,  # 1 for skipgram, otherwise CBOW
+            window=window,
+            epochs=epochs)
+
+        DF_TEST, w2v_sentences = vectorize_sentences(DF=DF_TEST, w2v=w2v.wv)
+
+        unique_schools = DF_TRAIN["school"].unique().tolist()
+        original_labels = [unique_schools.index(school) for school in DF_TEST["school"]]
+        num_clusters = len(unique_schools)
+
+        w2v_kmeans, w2v_labels, w2v_centroids = apply_kmeans(num_clusters, w2v_sentences)
+
+        w2v_v_measure = v_measure_score(original_labels, w2v_labels)
+
+        v_measure_list.append(w2v_v_measure)
+    return v_measure_list
+
+
+def plot_similar_words(model, words, title, top_words):
+    sim_words = {search_term: [item[0] for item in model.most_similar([search_term], topn=top_words)]
+                 for search_term in words}
+    words = sum([[k] + v for k, v in sim_words.items()], [])
+    words_vec = model[words]
+
+    tsne = TSNE(n_components=2, random_state=0, n_iter=10000, perplexity=2)
+    np.set_printoptions(suppress=True)
+    T = tsne.fit_transform(words_vec)
+    labels = words
+
+    plt.figure(figsize=(10, 6))
+    plt.scatter(T[:, 0], T[:, 1], c='red', edgecolors='r')
+    plt.title(title)
+    for label, x, y in zip(labels, T[:, 0], T[:, 1]):
+        plt.annotate(label, xy=(x + 1, y + 1), xytext=(0, 0), textcoords='offset points')
+
+def plot_v_measure(v_measure_dict, title):
+    df = pd.DataFrame(v_measure_dict.values(), index=["skipgram_2".upper(),"skipgram_3".upper(),"skipgram_5".upper(),"skipgram_7".upper(),"cbow_2".upper(),"cbow_3".upper(),"cbow_5".upper(),"cbow_7".upper()])
+    df.T.boxplot(vert=False)
+    plt.subplots_adjust(left=0.25)
+    plt.title(title)
+    plt.xlabel("V/Vmax")
+    plt.show()
+
 
 def generate_dataframe(sot_text_dict_list_cleaned):
     books_titles = ["ethics",
@@ -536,131 +635,3 @@ def generate_dataframe(sot_text_dict_list_cleaned):
             count += 1
 
     return dataframe_sot
-
-
-def scatter_plot(centroids, labels, values, type='tsne', n_components=2, n_jobs=-1):
-    if type == 'tsne':
-        model = TSNE(n_components=n_components, n_jobs=n_jobs)
-    elif type == 'umap':
-        model = umap.UMAP(n_components=2, n_jobs=n_jobs)
-    else:
-        model = PCA(n_components=2)
-
-    start = time.time()
-
-    np.set_printoptions(suppress=True)
-
-    unique_labels_list = list(set(labels))
-    Y = model.fit_transform(values)
-
-    tsne_time = time.time() - start
-    print(f"TIME: {tsne_time}")
-
-    scatter = plt.scatter(Y[:, 0], Y[:, 1], c=labels, s=5, cmap='tab20')
-    plt.legend(handles=scatter.legend_elements()[0], labels=unique_labels_list, prop={"size": 5})
-
-    # If we want to have centroids join the party aswell.
-    CENTER=model.fit_transform(centroids)
-    plt.scatter(CENTER[:,0], CENTER[:,1], c='black', s=10)
-    for j in range(len(centroids)):
-        plt.annotate(unique_labels_list[j], xy=(CENTER[j][0], CENTER[j][1]), xytext=(0,0), textcoords='offset points')
-
-    plt.show()
-    pass
-
-def cluster_n_assigned(DF, name, labels, schools):
-    amount_SOT_got_clustered_dict = dict()
-    for i, school in enumerate(DF["school"]):
-        if amount_SOT_got_clustered_dict.get(school) is None:
-            amount_SOT_got_clustered_dict[school] = dict.fromkeys([i for i in range(len(schools))], 0)
-        amount_SOT_got_clustered_dict[school][labels[i]] += 1
-
-    print(amount_SOT_got_clustered_dict)
-
-    cluster_n_assigned_to_SOT = pd.DataFrame(amount_SOT_got_clustered_dict)
-    cluster_n_assigned_to_SOT.plot(kind="bar", stacked=True)
-    plt.xlabel("Cluster")
-    plt.ylabel("Count")
-    plt.title(f"{name} Total cluster assignment of School of Thought")
-    plt.legend(prop={"size": 5})
-    plt.show()
-
-    count = 0
-    for school, list_tuples in amount_SOT_got_clustered_dict.items():
-        plt.subplot(1, 2, (count%2)+1)
-        plt.bar(range(len(list_tuples)), [value[1] for value in list_tuples.items()], align='center')
-        plt.xticks(range(len(list_tuples)), [value[0] for value in list_tuples.items()])
-        plt.xlabel("Cluster")
-        plt.ylabel("Count")
-        plt.title(f"{school}")
-        if (count+1) % 2 == 0:
-            plt.show()
-        count += 1
-
-def average_v_measure(orig_labels, num_clusters, DF, min_df_range ,n , max_df_range, bigram_range=(1,2), trigram_range=(1,3)):
-    exceptions_dict = []
-    methods = ["tf_idf", "tf_idf_bigram", "tf_idf_trigram", "bigram", "trigram"]
-    v_measure_dict = {val: [] for val in methods}
-    iteration = 0
-    for min_df in np.arange(min_df_range[0],min_df_range[1], min_df_range[2]):
-        for max_df in np.arange(max_df_range[0],max_df_range[1],max_df_range[2]):
-            iteration+=1
-            try:
-                tf_idf = TfidfVectorizer(min_df=min_df, max_df=max_df,
-                                         stop_words='english').fit_transform(DF["string_sentence"])
-                tf_idf_bigram = TfidfVectorizer(min_df=min_df, max_df=max_df,
-                                                stop_words='english', ngram_range=bigram_range).fit_transform(
-                    DF["string_sentence"])
-                tf_idf_trigram = TfidfVectorizer(min_df=min_df, max_df=max_df,
-                                                 stop_words='english', ngram_range=trigram_range).fit_transform(
-                    DF["string_sentence"])
-                bigram = CountVectorizer(min_df=min_df, max_df=max_df, stop_words='english',
-                                         ngram_range=bigram_range).fit_transform(DF["string_sentence"])
-                trigram = CountVectorizer(min_df=min_df, max_df=max_df, stop_words='english',
-                                          ngram_range=trigram_range).fit_transform(DF["string_sentence"])
-
-                tf_idf = TruncatedSVD(n_components=100).fit_transform(tf_idf)
-                tf_idf_bigram = TruncatedSVD(n_components=100).fit_transform(tf_idf_bigram)
-                tf_idf_trigram = TruncatedSVD(n_components=100).fit_transform(tf_idf_trigram)
-                bigram = TruncatedSVD(n_components=100).fit_transform(bigram)
-                trigram = TruncatedSVD(n_components=100).fit_transform(trigram)
-
-                tf_idf_kmeans, tf_idf_labels, tf_idf_centroids = apply_kmeans(num_clusters, tf_idf)
-                tf_idf_bigram_kmeans, tf_idf_bigram_labels, tf_idf_bigram_centroids = apply_kmeans(num_clusters,
-                                                                                                   tf_idf_bigram)
-                tf_idf_trigram_kmeans, tf_idf_trigram_labels, tf_idf_trigram_centroids = apply_kmeans(num_clusters,
-                                                                                                      tf_idf_trigram)
-                bigram_kmeans, bigram_labels, bigram_centroids = apply_kmeans(num_clusters, bigram)
-                trigram_kmeans, trigram_labels, trigram_centroids = apply_kmeans(num_clusters, trigram)
-
-                tf_idf_v_measure = v_measure_score(orig_labels, tf_idf_labels)
-                tf_idf_bigram_v_measure = v_measure_score(orig_labels, tf_idf_bigram_labels)
-                tf_idf_trigram_v_measure = v_measure_score(orig_labels, tf_idf_trigram_labels)
-                bigram_v_measure = v_measure_score(orig_labels, bigram_labels)
-                trigram_v_measure = v_measure_score(orig_labels, trigram_labels)
-
-                tf_idf_v_measure_dict = {"v_measure": tf_idf_v_measure, "min_df": min_df,
-                                         "max_df": max_df}
-                tf_idf_bigram_v_measure_dict = {"v_measure": tf_idf_bigram_v_measure, "min_df": min_df,
-                                                "max_df": max_df}
-                tf_idf_trigram_v_measure_dict = {"v_measure": tf_idf_trigram_v_measure, "min_df": min_df,
-                                                 "max_df": max_df}
-                bigram_v_measure_dict = {"v_measure": bigram_v_measure, "min_df": min_df / min_df_range,
-                                         "max_df": max_df}
-                trigram_v_measure_dict = {"v_measure": trigram_v_measure, "min_df": min_df,
-                                          "max_df": max_df}
-
-                v_measure_dict["tf_idf"].append(tf_idf_v_measure_dict)
-                v_measure_dict["tf_idf_bigram"].append(tf_idf_bigram_v_measure_dict)
-                v_measure_dict["tf_idf_trigram"].append(tf_idf_trigram_v_measure_dict)
-                v_measure_dict["bigram"].append(bigram_v_measure_dict)
-                v_measure_dict["trigram"].append(trigram_v_measure_dict)
-            except:
-                exception = {"min_df": min_df, "max_df": max_df}
-                exceptions_dict.append(exception)
-                pass
-            print("Iteration: " + str(iteration) + " / " + str(n), end='\r')
-    return v_measure_dict, exceptions_dict
-
-
-
