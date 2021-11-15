@@ -10,6 +10,7 @@ import umap.umap_ as umap
 import unidecode
 from gensim.models import Word2Vec
 from nltk.corpus import stopwords
+from nltk.stem import WordNetLemmatizer
 from sklearn import cluster
 from sklearn.decomposition import PCA
 from sklearn.manifold import TSNE
@@ -61,14 +62,14 @@ def sentence_vectorizer(sentence, model):
             num_words += 1
         except:
             pass
-    # Check if list if empty. Basically none of the words in the sentence are found in the model.
+    # Check if list if empty, if none of the words in the sentence are found in the model.
     if num_words < 1:
         return None
     return np.asarray(words) / num_words
 
 
 def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4):
-    kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance).fit(sentences_vectorized)
+    kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance, n_init=50).fit(sentences_vectorized)
     # print(kmeans.n_iter_)
     labels = kmeans.predict(sentences_vectorized)
     centroids = kmeans.cluster_centers_
@@ -146,35 +147,31 @@ def check_whitespace_misspells(text, english_words):
 #     # print("The unusual words that doesn't exist in the model = {}".format(set(unusual_words).difference(model_vocab)))
 
 def custom_convert_wrongly_spelled_words(text):
-    # US SPELLING
-    text = re.sub(r'\shonour', ' honor ', text)
-    text = re.sub(r'\sfavours', 'favors ', text)
-    text = re.sub(r'\shonourable', ' honorable ', text)
-    text = re.sub(r'\sneighbourhood', ' neighborhood ', text)
-    text = re.sub(r'\scolour', ' color ', text)
-
-    text = re.sub(r'\sappertains', ' pertain ', text)
-    text = re.sub(r'\svolitions', ' volition ', text)
-    text = re.sub(r'\shighmindedness', ' high mindedness ', text)
-    text = re.sub(r'\saffectiones', ' affections ', text)
-    text = re.sub(r'\sbetaking', ' be taking ', text)
-    text = re.sub(r'\sanalysed', ' analyzed ', text)
-    text = re.sub(r'\sgeneralisation', ' generalization ', text)
-    text = re.sub(r'\sfavour', ' favor ', text)
-    text = re.sub(r'\srecognised', ' recognized ', text)
-    text = re.sub(r'\slanguagegame', ' language game ', text)
-    text = re.sub(r'\sbservation', ' observation ', text)
-    text = re.sub(r'\sbstract', ' abstract ', text)
-    text = re.sub(r'\shetween', ' between ', text)
-    text = re.sub(r'\snthe\s', 'n the ', text)
-    text = re.sub(r'\sntaking\s', 'n taking ', text)
+    text = re.sub(r'\bappertains', ' pertain ', text)
+    text = re.sub(r'\bvolitions', ' volition ', text)
+    text = re.sub(r'\bhighmindedness', ' high mindedness ', text)
+    text = re.sub(r'\baffectiones', ' affections ', text)
+    text = re.sub(r'\bbetaking', ' be taking ', text)
+    text = re.sub(r'\banalysed', ' analyzed ', text)
+    text = re.sub(r'\bgeneralisation', ' generalization ', text)
+    text = re.sub(r'\bfavour', ' favor ', text)
+    text = re.sub(r'\brecognised', ' recognized ', text)
+    text = re.sub(r'\blanguagegame', ' language game ', text)
+    text = re.sub(r'\bbservation', ' observation ', text)
+    text = re.sub(r'\bbstract', ' abstract ', text)
+    text = re.sub(r'\bhetween', ' between ', text)
+    text = re.sub(r'\bnthe', 'n the ', text)
+    text = re.sub(r'\bntaking', 'n taking ', text)
+    text = re.sub(r'\bathing', ' a thing ', text)
+    text = re.sub(r'\btobe', ' to be ', text)
+    text = re.sub(r'\binsofar', ' in so far ', text)
 
     return text
 
 
 def remove_unnecessary_phrases_chars(text, stop_words, english_words):
-    text = re.sub(r'This\s*page\s*intentionally\s*left\s*blank', ' ', text)
-    tex = re.sub(r"Translator’s\s*Preface", ' ', text)
+    text = re.sub(r"This\s*page\s*intentionally\s*left\s*blank", " ", text)
+    text = re.sub(r"Translator’s\s*Preface", ' ', text)
     # Remove numbers conjoined with a dot or comma.
     text = re.sub(r'\d\,\d', ' ', text)
     text = re.sub(r'\d\.\d', ' ', text)
@@ -184,20 +181,16 @@ def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     text = text.lower()
     # Remove atmostrophes.
     text = unidecode.unidecode(text)
-    # Remove roman numericals, usually followed by a dot. Need to be done several times because some roman numericals can be xvii.xii
-    # And so only the resulting sub will be .xii, but if ran several times, it will result in an empty string.
-    int_changed = 1
-    while int_changed > 0:
-        text, int_changed = re.subn(
-            r'\s((i*v*x*\.)|(i*x*v*\.)|(x*v*i*\.)|(x*i*v*\.)|(v*i*\.)|(l*x*v*i*\.)|(x*l*i*\.)|(f*x*v*i*\.)|(x*i*f*\.))',
-            ' ', text)
+    # Need to be done before roman numericals.
+    text.replace('i.e.', ' ').replace('i.e', ' ')
+    # Remove roman numericals.
+    text, int_changed = re.subn(r'\b[ivx]+\.', ' ', text)
 
     # Convert ?! to dots.
     text = re.sub(r'[\x21\x3f]', '.', text)
     # Replace all non-ascii characters except [ASCII 32-126 and newline] with space.
+    text = text.replace('\n', ' ').replace('\r', ' ')
     text = re.sub(r'[^\x20\x21\x2e\x3f\x61-\x7a]', ' ', text)
-    # Remove stopwords.
-    text = " ".join([word for word in text.split() if word not in stop_words])
 
     # Find unusual words (will also write to file the first 20 (or more) most used wrongly spelled words with count.)
     # find_unusual_words(text, english_words)
@@ -205,24 +198,22 @@ def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     # Convert custom wrongly spelled words.
     text = custom_convert_wrongly_spelled_words(text)
 
-    # Remove words that are 1 char long.
-    temp_texts = []
-    for sentence in text.split("."):
-        sen = [word for word in sentence.split() if len(word) > 1]
-        temp_texts.append(" ".join(sen))
-    text = ".".join(temp_texts)
+    # Fix if misspells with whitespace occurs.
+    text = check_whitespace_misspells(text, english_words)
+
+    # Remove 1 character words
+    text, num_removals = re.subn(r"\b[a-z]{1,1}\b", " ", text)
+
+    # Remove stop_words
+    text = ".".join([" ".join([word for word in sentence.split() if word not in stop_words]) for sentence in text.split(".")])
 
     return text
-
 
 def customized_cleaning(text, stop_words, english_words):
     # Check for unusual words for each text
     text = remove_unnecessary_phrases_chars(text, stop_words, english_words)
-    # Fix if misspells with whitespace occurs.
-    text = check_whitespace_misspells(text, english_words)
 
     return text
-
 
 def write_words_to_file(words):
     with open('words_not_in_w2v.txt', 'a') as f:
@@ -232,7 +223,7 @@ def write_words_to_file(words):
 
 def text_cleaning(dictionary_list_of_strings):
     stop_words = stopwords.words('english') + custom_stop_words()
-    english_words = set(word.lower() for word in nltk.corpus.words.words())
+    english_words = set(word.lower() for word in list(nltk.corpus.brown.words()))
     for school, list_books in dictionary_list_of_strings.items():
         for index, text in enumerate(list_books):
             # print("Number of words before cleaning in text = {}".format(len(text.split())))
@@ -261,12 +252,7 @@ def custom_stop_words():
             "also",
             "may",
             "sein",
-            "b",
             "da",
-            "p",
-            "c",
-            "e",
-            "n",
             "therefore",
             "cannot",
             "yet",
@@ -274,11 +260,6 @@ def custom_stop_words():
             "mean",
             "one",
             "might",
-            "g",
-            "x",
-            "e",
-            "f",
-            "l",
             "ie",
             "however",
             "cf",
@@ -311,14 +292,10 @@ def custom_stop_words():
             "whether",
             "let",
             "either",
-            "e",
             "merely",
-            "iv",
             "instead",
-            "xiv",
-            "xi",
-            "i.e.",
-            "i.e"]
+            "yes",
+            ""]
 
 
 def scatter_plot(labels, values, type='tsne', centroids=None, n_components=2, n_jobs=-1):
@@ -400,8 +377,9 @@ def vectorize_sentences(w2v, DF):
     return DF, sentences_vectorized
 
 
-def best_v_measure_w2v(FULL_DF, train=False, train_ratio=0.2, iterations=5, model=1, window=5, epochs=10, vector_size=100):
+def best_v_measure_w2v(FULL_DF, train=False, train_ratio=0.2, iterations=1, model=1, window=5, epochs=10, vector_size=100):
     v_measure_list = []
+    start = time.time()
     for i in range(iterations):
 
         if train:
@@ -432,24 +410,25 @@ def best_v_measure_w2v(FULL_DF, train=False, train_ratio=0.2, iterations=5, mode
         w2v_v_measure = v_measure_score(original_labels, w2v_labels)
 
         v_measure_list.append(w2v_v_measure)
+        print(f"{i + 1} / {iterations} run", end='\r')
+
+    end = time.time()
+    print(f"\rAverage Time per Iteration: {(end - start) / iterations}")
     return v_measure_list
 
 
 def plot_similar_words(model, words, title, top_words):
-    sim_words = {search_term: [item[0] for item in model.most_similar([search_term], topn=top_words)]
-                 for search_term in words}
-    words = sum([[k] + v for k, v in sim_words.items()], [])
+    similar_words = {word: [word_tuple[0] for word_tuple in model.most_similar([word], topn=top_words)] for word in words}
+    words = sum([[k] + v for k, v in similar_words.items()], [])
     words_vec = model[words]
 
-    tsne = TSNE(n_components=2, random_state=0, n_iter=10000, perplexity=2)
-    np.set_printoptions(suppress=True)
-    T = tsne.fit_transform(words_vec)
-    labels = words
+    tsne = TSNE(n_components=2)
+    Y = tsne.fit_transform(words_vec)
 
     plt.figure(figsize=(10, 6))
-    plt.scatter(T[:, 0], T[:, 1], c='red', edgecolors='r')
+    plt.scatter(Y[:, 0], Y[:, 1], c='red', edgecolors='r')
     plt.title(title)
-    for label, x, y in zip(labels, T[:, 0], T[:, 1]):
+    for label, x, y in zip(words, Y[:, 0], Y[:, 1]):
         plt.annotate(label, xy=(x + 1, y + 1), xytext=(0, 0), textcoords='offset points')
 
 def plot_v_measure(v_measure_dict, title):
@@ -614,9 +593,9 @@ def generate_dataframe(sot_text_dict_list_cleaned):
                  "german_idealism",
                  "german_idealism",
                  "german_idealism",
-                 "communism",
-                 "communism",
-                 "communism"]
+                 "marxism",
+                 "marxism",
+                 "marxism"]
 
     dataframe_sot = pd.DataFrame(columns=['school', 'author', 'title', 'tokenized_sentence'])
 
