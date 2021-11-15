@@ -422,13 +422,15 @@ def plot_similar_words(model, words, title, top_words):
     words = sum([[k] + v for k, v in similar_words.items()], [])
     words_vec = model[words]
 
-    tsne = TSNE(n_components=2)
+    tsne = TSNE(n_components=2, random_state=0, n_iter=10000, perplexity=2)
+    np.set_printoptions(suppress=True)
     Y = tsne.fit_transform(words_vec)
+    plot_labels = words
 
     plt.figure(figsize=(10, 6))
-    plt.scatter(Y[:, 0], Y[:, 1], c='red', edgecolors='r')
+    plt.scatter(Y[:, 0], Y[:, 1], c='blue', edgecolors='b')
     plt.title(title)
-    for label, x, y in zip(words, Y[:, 0], Y[:, 1]):
+    for label, x, y in zip(plot_labels, Y[:, 0], Y[:, 1]):
         plt.annotate(label, xy=(x + 1, y + 1), xytext=(0, 0), textcoords='offset points')
 
 def plot_v_measure(v_measure_dict, title):
