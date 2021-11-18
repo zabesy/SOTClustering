@@ -68,8 +68,8 @@ def sentence_vectorizer(sentence, model):
     return np.asarray(words) / num_words
 
 
-def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4):
-    kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance, n_init=50).fit(sentences_vectorized)
+def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4, n_init=10):
+    kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance, n_init=n_init).fit(sentences_vectorized)
     # print(kmeans.n_iter_)
     labels = kmeans.predict(sentences_vectorized)
     centroids = kmeans.cluster_centers_
