@@ -68,7 +68,7 @@ def sentence_vectorizer(sentence, model):
     return np.asarray(words) / num_words
 
 
-def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4, n_init=10):
+def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4, n_init=20):
     kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance, n_init=n_init).fit(sentences_vectorized)
     # print(kmeans.n_iter_)
     labels = kmeans.predict(sentences_vectorized)
@@ -84,7 +84,7 @@ def read_and_load_text(file_name):
     return the_text
 
 
-def english_decontractions(text):
+def english_contractions(text):
     text = re.sub(r"n\'t\s+", " not ", text)
     text = re.sub(r"\'re\s+", " are ", text)
     text = re.sub(r"\'s\s+", " is ", text)
@@ -181,6 +181,8 @@ def remove_unnecessary_phrases_chars(text, stop_words, english_words):
     text = text.lower()
     # Remove atmostrophes.
     text = unidecode.unidecode(text)
+    #english contractions
+    text = english_contractions(text)
     # Need to be done before roman numericals.
     text.replace('i.e.', ' ').replace('i.e', ' ')
     # Remove roman numericals.
@@ -228,7 +230,6 @@ def text_cleaning(dictionary_list_of_strings):
         for index, text in enumerate(list_books):
             # print("Number of words before cleaning in text = {}".format(len(text.split())))
             # Unravel decontractions.
-            text = english_decontractions(text)
             # Customized text cleaning.
             text = customized_cleaning(text, stop_words, english_words)
             # Remove extra whitespace
