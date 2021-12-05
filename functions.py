@@ -62,7 +62,7 @@ def sentence_vectorizer(sentence, model):
             num_words += 1
         except:
             pass
-    # Check if list if empty, if none of the words in the sentence are found in the model.
+    # Check if list is empty, if none of the words in the sentence are found in the model.
     if num_words < 1:
         return None
     return np.asarray(words) / num_words
@@ -70,7 +70,6 @@ def sentence_vectorizer(sentence, model):
 
 def apply_kmeans(num_clusters, sentences_vectorized, tolerance=1e-4, n_init=20):
     kmeans = cluster.KMeans(n_clusters=num_clusters, algorithm="full", tol=tolerance, n_init=n_init).fit(sentences_vectorized)
-    # print(kmeans.n_iter_)
     labels = kmeans.predict(sentences_vectorized)
     centroids = kmeans.cluster_centers_
     return kmeans, labels, centroids
@@ -295,8 +294,7 @@ def custom_stop_words():
             "either",
             "merely",
             "instead",
-            "yes",
-            ""]
+            "yes"]
 
 
 def scatter_plot(labels, values, type='tsne', centroids=None, n_components=2, n_jobs=-1):
